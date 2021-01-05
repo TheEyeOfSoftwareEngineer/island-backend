@@ -284,8 +284,43 @@ router.get("/classic/latest", (ctx, next) => {
 });
 ```
 
--   步骤三: 注册 router 到 app 上
+-   步骤三: 注册 ro uter 到 app 上
 
 ```javascript
 app.use(router.routes()).use(router.allowdMethods());
 ```
+#### 端口号占用的解决
+```
+sudo lsof -i :PORT 找到占用端口号的PID
+sudo lsof -i :3000 
+
+kill -9 PID 占用端口的PID号
+```
+
+#### 路由的自动注册
+```javascript
+const Router = require('koa-router')
+const requireDirctory = require('require-directory')
+
+const modules = requireDirctory(module, './api', {visit:whenLoadModule})
+function whenLoadModule(obj) {
+  if(obj instanceof Router) {
+    app.use(obj.routes())
+  }
+}
+
+// 差一点的方法就是遍历modules
+for(let r in modules) {
+  if(r instanceof Router) {
+    app.use(r.routes())
+  }
+}
+```
+这样我们就省去了手动导入路由的麻烦
+```javascript
+const book  = require('./api/v1/book')
+const classic = require('./api/v1/classic')
+app.use(book.routes())
+app.use(classic.routes())
+```
+我们需要思考能不能在框架的基础上去简化操作从而提高效率
