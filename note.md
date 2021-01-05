@@ -170,6 +170,7 @@ async
 - 将函数的返回包装成为Promise
 - 只有await，没有async会报错
 <br/>
+
 - 示例6
 ```javascript
 app.use((ctx, next)=>{
