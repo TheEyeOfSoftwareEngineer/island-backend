@@ -324,3 +324,101 @@ app.use(book.routes())
 app.use(classic.routes())
 ```
 我们需要思考能不能在框架的基础上去简化操作从而提高效率
+
+#### 构建初始化管理器
+我们不想在主文件中加入过多的代码，所以我们尽量将代码部分抽离出去。这里我们通过类来构建初始化管理器，然后通过初始化管理器进行项目的初始化管理。
+**另外我们一定要注意循环引用的情况，这里Flask的处理方式是使用蓝图blueprint。我们在文件构建的时候尽量不要让下级文件调用上级文件，而应该是上级调用下级文件，从而保证项目文档的清晰**
+```javascript
+// core/init.js
+const requireDirctory = require('require-directory')
+const Router = require('koa-router')
+
+class InitManager {
+  static initCore(app) {
+    //入口方法
+    InitManager.app = app
+    InitManager.initLoadRouters()
+  }
+  static initLoadRouters() {
+    requireDirctory(module, '../app/api',{
+      visit:whenLoadModule
+    })
+    
+    function whenLoadModule(obj) {
+      if(obj instanceof Router) {
+        InitManager.app.use(obj.routes())
+      }
+    }
+  }
+}
+// app.js
+const Koa = require('koa')
+const InitManager = require('./core/init')
+
+// 新建出来的App实例是应用程序对象，在这个对象有很多中间件
+const app = new Koa()
+
+InitManager.initCore(app)
+
+// app阻塞以等待请求
+app.listen(3000)
+```
+在上面的代码`init.js`部分，api的地址是用相对路径去完成的。这里我们可以用绝对路径或者配置文件的方式去管理.
+```javascript
+const apiDirectory = `${process.cwd()}/app/api`
+    requireDirctory(module, apiDirectory,{
+      visit:whenLoadModule
+    })
+// 这里我们通过process.cwd()获取当前项目的根目录地址，然后结合ES6的字符串模板写法形成目标目录地址
+```
+
+#### 参数获取
+- 请求路径传参
+- 请求参数传参
+- header传参
+- body请求体传参
+```javascript
+1. '/v1/:param/classic/latest'
+2. 'v1/classic/latest?param='
+```
+- 示例
+```javascript
+// 需要在app.js中导入koa-bodyparser
+const parser = require('koa-bodyparser')
+app.use(parser())
+
+router.post("/v1/:id/classic/latest", (ctx, next)=> {
+  const path =  ctx.params
+  console.log(path)
+  const query = ctx.request.query
+  console.log(query)
+  const headers = ctx.request.header
+  console.log(headers)
+  const body = ctx.request.body
+  console.log(body)
+  ctx.body = {
+    key:"classic"
+  }
+})
+```
+```javascript
+// 返回结果
+{ id: '3' }
+[Object: null prototype] { param: '857' }
+{
+  'content-type': 'application/json',
+  token: '123123123',
+  'user-agent': 'PostmanRuntime/7.26.5',
+  accept: '*/*',
+  'cache-control': 'no-cache',
+  'postman-token': 'xxx',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate, br',
+  connection: 'keep-alive',
+  'content-length': '14'
+}
+{ key: 'will' }
+```
+*需要注意参数校验* 如WTForms
+- 防止非法的参数
+- 给客户端明确的提示
