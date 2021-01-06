@@ -422,3 +422,125 @@ router.post("/v1/:id/classic/latest", (ctx, next)=> {
 *需要注意参数校验* 如WTForms
 - 防止非法的参数
 - 给客户端明确的提示
+
+#### 异常处理
+- 没有发生异常 正确返回结果
+  - 无异常 执行后不需要返回结果
+- 发生了异常
+
+##### 函数异常设计
+- 在函数内部中判断出异常, return false或者null
+- throw new Error
+```javascript
+function func3() {
+  try {
+    1/0  // 1/0在javascript中不是错误
+  } catch (error) {
+    throw error 
+  }
+  return 'success' // func3()执行结果为 success
+}
+```
+try-catch在大部分时候是对同步有效的,在异步中无效.所以思路可以是将异步的异常都用aysnc和await进行包裹，从而使的异步编程同步，此时可以结合try-catch使用.
+```javascript
+async function func2() {
+  try {
+    await func2()  
+  } catch (error) {
+    console.log('error') // 此时会打印 error
+  }  
+}
+
+function func3() {
+  return new Promise(function (resolve, reject) {
+    const r = Math.random();
+    if(r<0.5) {
+      reject('error')
+    }
+  })
+}
+```
+我们需要保证异常的触发出返回为promise
+*unhandled promise*报错表示代码中有promise报异常但是没有处理
+##### 全局异常处理
+设计一种机制，监听所有函数的异常
+##### AOP 面向切面编程
+```javascript
+const catchError = async (ctx, next) => {
+  try {
+    await next()
+  } catch (error) {
+    ctx.body = '服务器有点问题，你等一下'
+  }
+}
+
+app.use(catchError)
+```
+### error说明与设计
+error需要简化清晰传递给前端
+- HTTP status code 2xx 4xx 5xx
+- error_code 详细的信息由开发者自定义
+- request_url 当前请求的url
+
+错误分类
+- 已经型错误 可以主动判断的错误
+- 未知型错误 程序潜在错误
+
+```javascript
+router.post("/v1/:id/classic/latest", (ctx, next)=> {
+  const path =  ctx.params
+  const query = ctx.request.query
+  const headers = ctx.request.header 
+  const body = ctx.request.body
+  if(true) {
+    const error = new Error('错误信息')
+    error.errorCode = 10001
+    error.status = 400
+    error.requestUrl = `${ctx.method} ${ctx.path}`
+    throw error
+  }
+  
+  ctx.body = {
+    key:"classic"
+  }
+}
+
+// 全局异常处理
+const catchError = async (ctx, next) => {
+  try {
+    await next()
+  } catch (error) {
+    if(error.errorCode) {
+      ctx.body = {
+        mgs: error.message,
+        error_code: error.errorCode,
+        request_url: error.requestUrl
+      }
+      ctx.status = error.status // 设置返回的code
+    }
+  }
+}
+
+// Postman返回
+{
+    "mgs": "错误信息",
+    "error_code": 10001,
+    "request_url": "POST /v1/3/classic/latest"
+}
+```
+
+#### 异常类的封装
+```javascript
+class HttpException extends Error {
+  constructor(msg="服务器异常", errorCode=10000, code=400) {
+    super()
+    this.errorCode = errorCode
+    this.code = code
+    this.msg = msg
+  }
+}
+
+module.exports = {
+  HttpException
+}
+```
