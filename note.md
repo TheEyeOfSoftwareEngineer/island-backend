@@ -544,3 +544,81 @@ module.exports = {
   HttpException
 }
 ```
+
+#### 业务模块的构建
+##### 用户系统
+- 通用性
+- 针对小程序
+一般，用户系统包括
+- 账号
+- 密码
+- 附属信息
+  - email
+  - 年龄等
+
+#### 数据库
+- 关系型数据库
+  - MS SQLServer
+  - Oracle
+  - PostgresSQL
+  - MySQL
+- 非关系型数据库
+  - Redis: key-value型
+  - MongoDB: 文档型数据库
+持久存储数据，写数据的过程即持久化
+
+主键不能重复，不能为空;需要是数字的,不建议是字符串，尤其是随机字符串(比如GUID).但需要注意并发的情况.自增的情况可能会泄露.我们需要做到的是即使别人知道编号,也可以保护用户的资料.
+
+#### ORM
+Sequelize 连接数据库 配置数据库的参数
+```javascript
+const Sequelize = require('sequelize')
+
+const sequelize = new Sequelize(dbName, user, passwaord, JS对象)
+
+const sequelize = new Sequelize(dbName, user, password, {
+  // dislect 指定数据库的类型
+  dislect: 'mysql',
+  host,
+  port,
+  logging:true,
+  timezone:'xxx',
+  define: {
+
+  }
+})
+
+module.exports = {
+  db:sequelize
+}
+```
+
+#### Model层
+```javascript
+const {db} = require('../../core/db')
+
+const {Sequelize, Model} = require('sequelize')
+
+class User extends Model {
+
+}
+
+User.init({
+  id:{
+    type:Sequelize.INTEGER,
+    primaryKey:true,
+    autoIncrement: true
+  },
+  nickname:Sequelize.STRING,
+  email:Sequelize.STRING,
+  password:Sequelize.STRING,
+  openid:{
+    type:Sequelize.STRING(64),
+    unique:true
+  }
+},{sequelize})
+```
+
+#### 编写API的思维方式
+- 接受那些参数
+- 进行参数校验
