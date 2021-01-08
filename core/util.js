@@ -38,6 +38,7 @@ const findMembers = function (instance, {
 }
 
 // 生成Token
+// scope 用户权限
 const generateToken = function (uid, scope) {
   const { secretKey } = global.config.security
   const { expiresIn } = global.config.security

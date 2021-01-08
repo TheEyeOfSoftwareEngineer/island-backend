@@ -632,3 +632,78 @@ User.init({
 const salt = bcrypt.genSaltSync(10)
 //不同的用户的相同密码生成的密码都会不同以防范彩虹攻击
 ```
+
+#### jwt Token
+```javascript
+// 生成Token
+// scope 用户权限
+const generateToken = function (uid, scope) {
+  const { secretKey } = global.config.security
+  const { expiresIn } = global.config.security
+  const token = jwt.sign({
+    uid,
+    scope,
+  }, secretKey, {
+    expiresIn,
+  })
+  return token
+}
+```
+
+#### 用户权限
+```javascript
+const basicAuth = require('basic-auth')
+const jwt = require('jsonwebtoken')
+class Auth {
+  constructor(level) {
+    this.level = level || 1
+    Auth.USER = 8
+    Auth.ADMIN = 16
+    Auth.SUPER_ADMIN = 32
+  }
+
+  get m() {
+    return async (ctx, next) => {
+      // token 检测
+      // HttpBasicAuth
+      const userToken = basicAuth(ctx.req)
+      let errMsg = 'token不合法'
+      if(!userToken || !userToken.name) {
+        throw new global.errs.Forbidden(errMsg)
+      }
+      try {
+        var decode = jwt.verify(userToken.name, global.config.security.secretKey)
+      } catch (error) {
+        // token不合法 token过期
+        if(error.name == 'TokenExpiredError') {
+          errMsg = 'token令牌过期'
+        }
+        throw new global.errs.Forbidden(errMsg)
+      }
+      if(decode.scope < this.level) {
+        errMsg = '权限不足'
+        throw new global.errs.Forbidden(errMsg)
+      }      
+      
+      ctx.auth = {
+        uid: decode.uid,
+        scope: decode.scope
+      }
+
+      await next()
+    }
+  }
+}
+
+module.exports = {
+  Auth
+}
+```
+
+#### 业务逻辑
+- 在API接口编写
+- Model 分层编写(MVC)
+#### 业务分层
+ - 简单项目Model
+ - Model+Service
+ - Java: Model+DTO
