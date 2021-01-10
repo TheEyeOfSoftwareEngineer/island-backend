@@ -707,3 +707,20 @@ module.exports = {
  - 简单项目Model
  - Model+Service
  - Java: Model+DTO
+
+#### Basic OAuth验证
+需要对token进行basic64的加密
+```javascript
+header {
+  Authorization: token
+}
+_encode() {
+  // <!-- account: password -->
+  // base64的格式
+  // Authorization:Basic base64(account:password)
+  token
+}
+```
+
+#### 序列化
+蒋某种语言的对象转换成json

@@ -15,15 +15,15 @@ class WXManager {
       global.config.wx.appId,
       global.config.wx.appSecret,
       code)
-    console.log(url)  
     const result = await axios.get(url)  
     console.log(result.data)
     if(result.status !== 200) {
       throw new global.errs.AuthFailed('opneid获取失败')
     }
     const errcode = result.data.errcode
-    if(errcode !== 0) {
-      throw new global.errs.AuthFailed('opneid获取失败:' + errcode)
+    const errmsg = result.data.errmsg
+    if(errcode) {
+      throw new global.errs.AuthFailed('opneid获取失败:' + errmsg)
     }
     let user = await User.getUserByOpenid(result.data.openid)
     if(!user) {
