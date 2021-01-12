@@ -26,6 +26,8 @@ class Art {
     }
     return art;
   }
+
+  
 }
 
 module.exports = {
